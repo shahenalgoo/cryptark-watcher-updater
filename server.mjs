@@ -102,20 +102,20 @@ async function totalPlayersUpdater( client ) {
         const totalCount = parseInt(fantomSupply) + parseInt(polygonSupply);
 
         // WATCH CHAIN & UPDATE TOTAL PLAYERS
-        fantomContract.events.listenToAllEvents((event) => {
-            if (event.eventName === "TokensClaimed" ) {
+        // fantomContract.events.listenToAllEvents((event) => {
+        //     if (event.eventName === "TokensClaimed" ) {
 
-                const filter = {totalPlayers: pool.totalPlayers};
-                const updateDoc = {
-                    $set: {
-                        totalPlayers: totalCount
-                    },
-                };
+        //         const filter = {totalPlayers: pool.totalPlayers};
+        //         const updateDoc = {
+        //             $set: {
+        //                 totalPlayers: totalCount
+        //             },
+        //         };
 
-                const spacefarerPools = client.db("cryptark").collection("poolsSpacefarer").updateOne(filter, updateDoc);
+        //         const spacefarerPools = client.db("cryptark").collection("poolsSpacefarer").updateOne(filter, updateDoc);
 
-            }
-        });
+        //     }
+        // });
 
         polygonContract.events.listenToAllEvents((event) => {
             if (event.eventName === "TokensClaimed" ) {
@@ -134,7 +134,7 @@ async function totalPlayersUpdater( client ) {
 
     } //for
 
-    // console.log(spacefarerPools);
+    console.log(spacefarerPools);
 }
 
 
