@@ -4,6 +4,9 @@ dotenv.config()
 import express from 'express';
 import { MongoClient } from 'mongodb';
 import { ThirdwebSDK } from "@thirdweb-dev/sdk";
+import { BigNumber, ethers } from 'ethers';
+import { readFileSync } from 'fs';
+
 // const mongoose = require('mongoose');
 
 const app = express();
@@ -84,31 +87,31 @@ const port = process.env.PORT || 8000;
 //     }
 
 
-// GET BLOCKCHAIN DATA
-async function getBlockchainData() {
 
+
+
+const main = async () => {
+    const mumbaiRPC = "https://rpc.ankr.com/polygon_mumbai";
+    const polygonSdk = new ThirdwebSDK(mumbaiRPC);
+    const polygonContract = await polygonSdk.getContract("0x391b7790F0C9AcB634b5f7d66F9D5eBC6C9a26D1", "edition-drop");
+
+    // WATCH FOR CONTRACT EVENTS
+    polygonContract.events.listenToAllEvents((event) => {
+        // console.log(event);
+        if (event.eventName === "TokensClaimed" ) {
+
+            async function getdata() {
+                const token = await polygonContract.totalSupply(0);
+                console.log(token?.toNumber())
+            }
+
+            getdata();
+            
+        }
+    })
 }
 
-(async () => {
-    const mumbaiRPC = "https://rpc.ankr.com/polygon_mumbai";
-
-	const polygonSdk = new ThirdwebSDK(mumbaiRPC);
-	const polygonContract = await polygonSdk.getContract("0x391b7790F0C9AcB634b5f7d66F9D5eBC6C9a26D1", "edition-drop");
-	const token = await polygonContract.totalSupply(0);
-
-    console.log(token.toNumber())
-})();
-
-
-
-
-
-
-
-
-
-
-
+main();
 
 
 
