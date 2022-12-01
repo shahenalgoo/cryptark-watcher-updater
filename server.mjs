@@ -21,12 +21,18 @@ async function main() {
 
     try {
 
-        // CONNECT TO DB
+        // Await connection to database
         await client.connect();
-        console.log("Connected to database...");
+        console.log("Connected to Database");
+
+        // Await to find seasons
+        // await getSeasons(client, "controllerSeason");
 
         // POOL PARTICIPANTS AUTO UPDATER
         await totalPlayersUpdater(client);
+
+        // Await to load data from blockchain
+        // await getBlockchainData();
 
     } catch (e) {
         console.error(e);
@@ -56,7 +62,7 @@ async function main() {
 // POOL PLAYERS UPDATER
 async function totalPlayersUpdater( client ) {
 
-    // GET ALL SPACEFARER ACTIVE POOLS
+// GET ALL SPACEFARER ACTIVE POOLS
     const spacefarerPools = await client.db("cryptark").collection("poolsSpacefarer").find({
         isActive : true,
         published_at: {$ne: null}
@@ -71,7 +77,7 @@ async function totalPlayersUpdater( client ) {
     
 
 
-    // LIVE BLOCKCHAIN DATA
+// LIVE BLOCKCHAIN DATA
 
     // SET RPCS
     const fantomRPC = "https://rpc.ankr.com/fantom";
@@ -106,7 +112,7 @@ async function totalPlayersUpdater( client ) {
                     },
                 };
 
-                let spacefarerPools = client.db("cryptark").collection("poolsSpacefarer").updateOne(filter, updateDoc);
+                const spacefarerPools = client.db("cryptark").collection("poolsSpacefarer").updateOne(filter, updateDoc);
 
             }
         });
@@ -121,7 +127,7 @@ async function totalPlayersUpdater( client ) {
                     },
                 };
 
-                let spacefarerPools = client.db("cryptark").collection("poolsSpacefarer").updateOne(filter, updateDoc);
+                const spacefarerPools = client.db("cryptark").collection("poolsSpacefarer").updateOne(filter, updateDoc);
 
             }
         });
