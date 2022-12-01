@@ -9,83 +9,87 @@ import { ThirdwebSDK } from "@thirdweb-dev/sdk";
 const app = express();
 const port = process.env.PORT || 8000;
 
-console.log("hellos")
+// console.log("hellos")
 
-// CONNECT TO DB
-    async function main() {
-        const uri = process.env.DATABASE_URI;
-        const client = new MongoClient(uri);
+// // CONNECT TO DB
+//     async function main() {
+//         const uri = process.env.DATABASE_URI;
+//         const client = new MongoClient(uri);
 
-        try {
-            await client.connect();
-            console.log("Connected to Database");
+//         try {
+//             await client.connect();
+//             console.log("Connected to Database");
 
-            // Await to find seasons
-            await getSeasons(client, "controllerSeason");
+//             // Await to find seasons
+//             await getSeasons(client, "controllerSeason");
 
-            // Await to find active pools
-            await getActivePools(client, "poolsSpacefarer");
+//             // Await to find active pools
+//             await getActivePools(client, "poolsSpacefarer");
 
-            // Await to load data from blockchain
-            await getBlockchainData();
+//             // Await to load data from blockchain
+//             await getBlockchainData();
 
-        } catch (e) {
-            console.error(e);
-        } finally {
-            await client.close();
-        }
-    }
+//         } catch (e) {
+//             console.error(e);
+//         } finally {
+//             await client.close();
+//         }
+//     }
 
-// GET ACTIVE WEEK FROM SEASONS
-    async function getSeasons( client ) {
-        const results = await client.db("cryptark").collection("controllerSeason").find({
-            isActive : true,
-            published_at: {$ne: null}
-        })
-        .project({
-            "_id": 0,
-            "slug": 1,
-            "seasonNumber": 1,
-            "gameName": 1,
-            "seasonWeek": 1,
-            "entryDeadline": 1,
-            "startingDate": 1,
-            "endingDate": 1
-        }).toArray();
+// // GET ACTIVE WEEK FROM SEASONS
+//     async function getSeasons( client ) {
+//         const results = await client.db("cryptark").collection("controllerSeason").find({
+//             isActive : true,
+//             published_at: {$ne: null}
+//         })
+//         .project({
+//             "_id": 0,
+//             "slug": 1,
+//             "seasonNumber": 1,
+//             "gameName": 1,
+//             "seasonWeek": 1,
+//             "entryDeadline": 1,
+//             "startingDate": 1,
+//             "endingDate": 1
+//         }).toArray();
 
-        // console.log(results)
-    }
+//         // console.log(results)
+//     }
 
-// GET ACTIVE POOLS
-    async function getActivePools( client ) {
-        const results = await client.db("cryptark").collection("poolsSpacefarer").find({
-            isActive : true,
-            published_at: {$ne: null}
-        })
-        .project({
-            "_id": 0,
-            "slug": 1,
-            "published_at": 1,
-            "isActive": 1,
-            "isPaused": 1,
-            "fantomAddress": 1,
-            "mumbaiAddress": 1,
-            "tokenID": 1,
-            "ticketPrice": 1,
-            "currency": 1,
-            "blockchain": 1,
-            "totalPlayers": 1,
-            "prizePoolSharePercentage": 1,
-            "totalParticipantsPaidPercentage": 1
-        }).toArray();
+// // GET ACTIVE POOLS
+//     async function getActivePools( client ) {
+//         const results = await client.db("cryptark").collection("poolsSpacefarer").find({
+//             isActive : true,
+//             published_at: {$ne: null}
+//         })
+//         .project({
+//             "_id": 0,
+//             "slug": 1,
+//             "published_at": 1,
+//             "isActive": 1,
+//             "isPaused": 1,
+//             "fantomAddress": 1,
+//             "mumbaiAddress": 1,
+//             "tokenID": 1,
+//             "ticketPrice": 1,
+//             "currency": 1,
+//             "blockchain": 1,
+//             "totalPlayers": 1,
+//             "prizePoolSharePercentage": 1,
+//             "totalParticipantsPaidPercentage": 1
+//         }).toArray();
 
-        // const resultArray = await results.toArray();
-        // console.log(results)
-    }
+//         // const resultArray = await results.toArray();
+//         // console.log(results)
+//     }
 
 
 // GET BLOCKCHAIN DATA
 async function getBlockchainData() {
+
+}
+
+(async () => {
     const mumbaiRPC = "https://rpc.ankr.com/polygon_mumbai";
 
 	const polygonSdk = new ThirdwebSDK(mumbaiRPC);
@@ -93,7 +97,7 @@ async function getBlockchainData() {
 	const token = await polygonContract.totalSupply(0);
 
     console.log(token.toNumber())
-}
+})();
 
 
 
@@ -112,7 +116,7 @@ async function getBlockchainData() {
 
 
 
-main().catch(console.error);
+// main().catch(console.error);
 
 // CONNECT TO MONGODB MONGOOSE
 
