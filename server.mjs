@@ -114,6 +114,7 @@ async function totalPlayersUpdater( client ) {
 
                 const spacefarerPools = client.db("cryptark").collection("poolsSpacefarer").updateOne(filter, updateDoc);
 
+                console.log("ticket on fantom minted");
             }
         });
 
@@ -128,7 +129,8 @@ async function totalPlayersUpdater( client ) {
                 };
 
                 const spacefarerPools = client.db("cryptark").collection("poolsSpacefarer").updateOne(filter, updateDoc);
-
+                
+                console.log("ticket on mumbai minted");
             }
         });
 
