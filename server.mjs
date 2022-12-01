@@ -9,7 +9,7 @@ import { ThirdwebSDK } from "@thirdweb-dev/sdk";
 const app = express();
 const port = process.env.PORT || 8000;
 
-console.log("hello")
+console.log("hellos")
 
 // CONNECT TO DB
     // async function main() {
