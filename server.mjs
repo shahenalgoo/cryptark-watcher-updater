@@ -4,148 +4,135 @@ dotenv.config()
 import express from 'express';
 import { MongoClient } from 'mongodb';
 import { ThirdwebSDK } from "@thirdweb-dev/sdk";
-import { BigNumber, ethers } from 'ethers';
-import { readFileSync } from 'fs';
+// import { BigNumber, ethers } from 'ethers';
+// import { readFileSync } from 'fs';
 
 // const mongoose = require('mongoose');
 
 const app = express();
 const port = process.env.PORT || 8000;
 
-// console.log("hellos")
-
-// // CONNECT TO DB
-//     async function main() {
-//         const uri = process.env.DATABASE_URI;
-//         const client = new MongoClient(uri);
-
-//         try {
-//             await client.connect();
-//             console.log("Connected to Database");
-
-//             // Await to find seasons
-//             await getSeasons(client, "controllerSeason");
-
-//             // Await to find active pools
-//             await getActivePools(client, "poolsSpacefarer");
-
-//             // Await to load data from blockchain
-//             await getBlockchainData();
-
-//         } catch (e) {
-//             console.error(e);
-//         } finally {
-//             await client.close();
-//         }
-//     }
-
-// // GET ACTIVE WEEK FROM SEASONS
-//     async function getSeasons( client ) {
-//         const results = await client.db("cryptark").collection("controllerSeason").find({
-//             isActive : true,
-//             published_at: {$ne: null}
-//         })
-//         .project({
-//             "_id": 0,
-//             "slug": 1,
-//             "seasonNumber": 1,
-//             "gameName": 1,
-//             "seasonWeek": 1,
-//             "entryDeadline": 1,
-//             "startingDate": 1,
-//             "endingDate": 1
-//         }).toArray();
-
-//         // console.log(results)
-//     }
-
-// // GET ACTIVE POOLS
-//     async function getActivePools( client ) {
-//         const results = await client.db("cryptark").collection("poolsSpacefarer").find({
-//             isActive : true,
-//             published_at: {$ne: null}
-//         })
-//         .project({
-//             "_id": 0,
-//             "slug": 1,
-//             "published_at": 1,
-//             "isActive": 1,
-//             "isPaused": 1,
-//             "fantomAddress": 1,
-//             "mumbaiAddress": 1,
-//             "tokenID": 1,
-//             "ticketPrice": 1,
-//             "currency": 1,
-//             "blockchain": 1,
-//             "totalPlayers": 1,
-//             "prizePoolSharePercentage": 1,
-//             "totalParticipantsPaidPercentage": 1
-//         }).toArray();
-
-//         // const resultArray = await results.toArray();
-//         // console.log(results)
-//     }
 
 
+async function main() {
+    // CONNECT TO DB
+    const uri = process.env.DATABASE_URI;
+    const client = new MongoClient(uri);
 
+    try {
 
+        // CONNECT TO DB
+        await client.connect();
+        console.log("Connected to database...");
 
-const main = async () => {
-    const mumbaiRPC = "https://rpc.ankr.com/polygon_mumbai";
-    const polygonSdk = new ThirdwebSDK(mumbaiRPC);
-    const polygonContract = await polygonSdk.getContract("0x391b7790F0C9AcB634b5f7d66F9D5eBC6C9a26D1", "edition-drop");
+        // POOL PARTICIPANTS AUTO UPDATER
+        await totalPlayersUpdater(client);
 
-    // WATCH FOR CONTRACT EVENTS
-    polygonContract.events.listenToAllEvents((event) => {
-        // console.log(event);
-        if (event.eventName === "TokensClaimed" ) {
-
-            async function getdata() {
-                const token = await polygonContract.totalSupply(0);
-                console.log(token?.toNumber())
-            }
-
-            getdata();
-            
-        }
-    })
+    } catch (e) {
+        console.error(e);
+    }
 }
 
-main();
+// // GET ACTIVE WEEK FROM SEASONS
+    // async function getSeasons( client ) {
+    //     const results = await client.db("cryptark").collection("controllerSeason").find({
+    //         isActive : true,
+    //         published_at: {$ne: null}
+    //     })
+    //     .project({
+    //         "_id": 0,
+    //         "slug": 1,
+    //         "seasonNumber": 1,
+    //         "gameName": 1,
+    //         "seasonWeek": 1,
+    //         "entryDeadline": 1,
+    //         "startingDate": 1,
+    //         "endingDate": 1
+    //     }).toArray();
+
+    //     // console.log(results)
+    // }
+
+// POOL PLAYERS UPDATER
+async function totalPlayersUpdater( client ) {
+
+    // GET ALL SPACEFARER ACTIVE POOLS
+    const spacefarerPools = await client.db("cryptark").collection("poolsSpacefarer").find({
+        isActive : true,
+        published_at: {$ne: null}
+    })
+    .project({
+        "_id": 0,
+        "fantomAddress": 1,
+        "mumbaiAddress": 1,
+        "tokenID": 1,
+        "totalPlayers": 1,
+    }).toArray();
+    
 
 
+    // LIVE BLOCKCHAIN DATA
+
+    // SET RPCS
+    const fantomRPC = "https://rpc.ankr.com/fantom";
+    const polygonRPC = "https://rpc.ankr.com/polygon_mumbai";
+
+    // INSTANTIATE SDKS
+    const fantomSdk = new ThirdwebSDK(fantomRPC);
+    const polygonSdk = new ThirdwebSDK(polygonRPC);
 
 
+    // UPDATE DOCUMENT
+    for (const pool of spacefarerPools) {
+
+        // FANTOM
+        const fantomContract = await fantomSdk.getContract(pool.fantomAddress, "edition-drop");
+        const fantomSupply = await fantomContract.totalSupply(pool.tokenID);
+
+        // MUMBAI
+        const polygonContract = await polygonSdk.getContract(pool.mumbaiAddress, "edition-drop");
+        const polygonSupply = await polygonContract.totalSupply(pool.tokenID);
+
+        const totalCount = parseInt(fantomSupply) + parseInt(polygonSupply);
+
+        // WATCH CHAIN & UPDATE TOTAL PLAYERS
+        fantomContract.events.listenToAllEvents((event) => {
+            if (event.eventName === "TokensClaimed" ) {
+
+                const filter = {totalPlayers: pool.totalPlayers};
+                const updateDoc = {
+                    $set: {
+                        totalPlayers: totalCount
+                    },
+                };
+
+                let spacefarerPools = client.db("cryptark").collection("poolsSpacefarer").updateOne(filter, updateDoc);
+
+            }
+        });
+
+        polygonContract.events.listenToAllEvents((event) => {
+            if (event.eventName === "TokensClaimed" ) {
+
+                const filter = {totalPlayers: pool.totalPlayers};
+                const updateDoc = {
+                    $set: {
+                        totalPlayers: totalCount
+                    },
+                };
+
+                let spacefarerPools = client.db("cryptark").collection("poolsSpacefarer").updateOne(filter, updateDoc);
+
+            }
+        });
+
+    } //for
+
+    // console.log(spacefarerPools);
+}
 
 
-
-// main().catch(console.error);
-
-// CONNECT TO MONGODB MONGOOSE
-
-// async function connectDB() {
-//     try {
-//         await mongoose.connect(process.env.DATABASE_URI);
-//         console.log("Connected to Database")
-//     } catch (error) {
-//         console.error(error);
-//     }
-// }
-
-// connectDB();
-
-
-
-
-
-
-// mongoose.connect(process.env.DATABASE_URL, { useNewUrlParser: true});
-// const db = mongoose.connection;
-
-// db.on('error', (error) => console.error(error));
-// db.on('open', () => console.log('Connected to Database'));
-
-
+main().catch(console.error);
 
 
 
