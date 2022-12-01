@@ -4,7 +4,7 @@ dotenv.config()
 import express from 'express';
 import { MongoClient } from 'mongodb';
 import { ThirdwebSDK } from "@thirdweb-dev/sdk";
-// import { BigNumber, ethers } from 'ethers';
+import { BigNumber, ethers } from 'ethers';
 // import { readFileSync } from 'fs';
 
 // const mongoose = require('mongoose');
@@ -79,64 +79,63 @@ async function totalPlayersUpdater( client ) {
 
 // LIVE BLOCKCHAIN DATA
 
-    // SET RPCS
-    const fantomRPC = "https://rpc.ankr.com/fantom";
-    const polygonRPC = "https://rpc.ankr.com/polygon_mumbai";
 
-    // INSTANTIATE SDKS
-    const fantomSdk = new ThirdwebSDK(fantomRPC);
-    const polygonSdk = new ThirdwebSDK(polygonRPC);
 
 
     // UPDATE DOCUMENT
     for (const pool of spacefarerPools) {
+        // SET RPCS
+        const fantomRPC = "https://rpc.ankr.com/fantom";
+        const polygonRPC = "https://rpc.ankr.com/polygon_mumbai";
 
-        // FANTOM
-        const fantomContract = await fantomSdk?.getContract(pool.fantomAddress, "edition-drop");
-        const fantomSupply = await fantomContract?.totalSupply(pool.tokenID);
+        // INSTANTIATE SDKS
+        const fantomSdk = new ThirdwebSDK(fantomRPC);
+        const fantomContract = await fantomSdk.getContract(pool.fantomAddress, "edition-drop");
+        const fantomSupply = await fantomContract.totalSupply(pool.tokenID);
 
-        // MUMBAI
-        const polygonContract = await polygonSdk?.getContract(pool.mumbaiAddress, "edition-drop");
-        const polygonSupply = await polygonContract?.totalSupply(pool.tokenID);
+        const polygonSdk = new ThirdwebSDK(polygonRPC);
+        const polygonContract = await polygonSdk.getContract(pool.mumbaiAddress, "edition-drop");
+        const polygonSupply = await polygonContract.totalSupply(pool.tokenID);
 
-        const totalCount = parseInt(fantomSupply) + parseInt(polygonSupply);
 
         // WATCH CHAIN & UPDATE TOTAL PLAYERS
         fantomContract?.events.listenToAllEvents((event) => {
             if (event.eventName === "TokensClaimed" ) {
+                const getClaimer = ethers.utils.getAddress(event.data.claimer);
 
                 const filter = {totalPlayers: pool.totalPlayers};
                 const updateDoc = {
                     $set: {
-                        totalPlayers: totalCount
+                        totalPlayers: parseInt(fantomSupply) + parseInt(polygonSupply)
                     },
                 };
 
                 const spacefarerPools = client.db("cryptark").collection("poolsSpacefarer").updateOne(filter, updateDoc);
 
-                console.log("ticket on fantom minted");
+                console.log("Fantom ticket minted by", getClaimer);
             }
         });
 
-        polygonContract?.events.listenToAllEvents((event) => {
-            if (event.eventName === "TokensClaimed" ) {
+        // polygonContract?.events.listenToAllEvents((event) => {
+        //     if (event.eventName === "TokensClaimed" ) {
+        //         const getClaimer = ethers.utils.getAddress(event.data.claimer);
 
-                const filter = {totalPlayers: pool.totalPlayers};
-                const updateDoc = {
-                    $set: {
-                        totalPlayers: totalCount
-                    },
-                };
+        //         const filter = {totalPlayers: pool.totalPlayers};
+        //         const updateDoc = {
+        //             $set: {
+        //                 totalPlayers: parseInt(fantomSupply) + parseInt(polygonSupply)
+        //             },
+        //         };
 
-                const spacefarerPools = client.db("cryptark").collection("poolsSpacefarer").updateOne(filter, updateDoc);
+        //         const spacefarerPools = client.db("cryptark").collection("poolsSpacefarer").updateOne(filter, updateDoc);
                 
-                console.log("ticket on mumbai minted");
-            }
-        });
+        //         console.log("Polygon ticket minted by", getClaimer);
+        //     }
+        // });
 
     } //for
 
-    // console.log(spacefarerPools);
+    console.log(spacefarerPools);
 }
 
 
