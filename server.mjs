@@ -24,6 +24,9 @@ const app = express();
             // Await to find active pools
             await getActivePools(client, "poolsSpacefarer");
 
+            // Await to load data from blockchain
+            await getBlockchainData();
+
         } catch (e) {
             console.error(e);
         } finally {
@@ -90,7 +93,7 @@ async function getBlockchainData() {
     console.log(token.toNumber())
 }
 
-getBlockchainData();
+
 
 
 
