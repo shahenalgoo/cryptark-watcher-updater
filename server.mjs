@@ -92,12 +92,12 @@ async function totalPlayersUpdater( client ) {
     for (const pool of spacefarerPools) {
 
         // FANTOM
-        const fantomContract = await fantomSdk.getContract(pool.fantomAddress, "edition-drop");
-        const fantomSupply = await fantomContract.totalSupply(pool.tokenID);
+        const fantomContract = await fantomSdk?.getContract(pool.fantomAddress, "edition-drop");
+        const fantomSupply = await fantomContract?.totalSupply(pool.tokenID);
 
         // MUMBAI
-        const polygonContract = await polygonSdk.getContract(pool.mumbaiAddress, "edition-drop");
-        const polygonSupply = await polygonContract.totalSupply(pool.tokenID);
+        const polygonContract = await polygonSdk?.getContract(pool.mumbaiAddress, "edition-drop");
+        const polygonSupply = await polygonContract?.totalSupply(pool.tokenID);
 
         const totalCount = parseInt(fantomSupply) + parseInt(polygonSupply);
 
