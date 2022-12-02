@@ -49,15 +49,15 @@ async function watcherUpdater( client ) {
     const fantomAddress = "0x48379C046da82D6087b6EdD453aF177cD910bbE9";
     const polygonAddress = "0x391b7790F0C9AcB634b5f7d66F9D5eBC6C9a26D1";
 
-    //SDKS
+    // SDKS
     var fantomSdk = null;
     var polygonSdk = null;
     
-    //TRY INIT SDK
+    // TRY INIT SDK
     tryInitSDK("polygon", 0);
     tryInitSDK("fantom", 0);
 
-    //TRY CATCH INIT SDK FUNCTION
+    // TRY CATCH INIT SDK FUNCTION
     function tryInitSDK(chain, index) {
         try {
             //try init sdk with first element of RPC arrays
@@ -70,7 +70,7 @@ async function watcherUpdater( client ) {
         }
     }
 
-    //INIK SDK FUNCTION
+    // INIK SDK FUNCTION
     function InitSdk(chain, index) {
         //init chosen sdk with chosen RPC array index
         switch (chain) {
