@@ -1,10 +1,6 @@
 import * as dotenv from 'dotenv'
 dotenv.config()
 
-import pkg from 'express-response-helper';
-const {responseHelper} = pkg;
-
-
 import express from 'express';
 import { MongoClient } from 'mongodb';
 import { ThirdwebSDK } from "@thirdweb-dev/sdk";
@@ -12,8 +8,6 @@ import { BigNumber, ethers } from 'ethers';
 
 
 const app = express();
-
-// app.use(responseHelper);
 
 const port = process.env.PORT || 8000;
 
