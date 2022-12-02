@@ -48,7 +48,7 @@ async function watcherUpdater( client ) {
     // LIVE BLOCKCHAIN DATA
     //
     // RPCS
-    const fantomRPCs = ["https://omniscient-proportionate-orb.fantom.quiknode.pro", "https://rpc.ankr.com/fantom"]
+    const fantomRPCs = ["https://rpc.ankr.com/fantom"]
     const polygonRPCs = ["https://rpc.ankr.com/polygon_mumbai"]
 
     // SEASON CONTRACT ADDRESSES
