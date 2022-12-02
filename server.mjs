@@ -1,6 +1,10 @@
 import * as dotenv from 'dotenv'
 dotenv.config()
 
+import pkg from 'express-response-helper';
+const {responseHelper} = pkg;
+
+
 import express from 'express';
 import { MongoClient } from 'mongodb';
 import { ThirdwebSDK } from "@thirdweb-dev/sdk";
@@ -8,10 +12,14 @@ import { BigNumber, ethers } from 'ethers';
 
 
 const app = express();
+
+// app.use(responseHelper);
+
 const port = process.env.PORT || 8000;
 
 
-
+// MAIN
+//
 async function main() {
 
     // CONNECT TO DB
@@ -25,77 +33,65 @@ async function main() {
         console.log("Connected to Database");
 
         // POOL PARTICIPANTS AUTO UPDATER
-        await totalPlayersUpdater(client);
+        await watcherUpdater(client);
 
     } catch (e) {
         console.error(e);
     }
 }
 
-// // GET ACTIVE WEEK FROM SEASONS
-    // async function getSeasons( client ) {
-    //     const results = await client.db("cryptark").collection("controllerSeason").find({
-    //         isActive : true,
-    //         published_at: {$ne: null}
-    //     })
-    //     .project({
-    //         "_id": 0,
-    //         "slug": 1,
-    //         "seasonNumber": 1,
-    //         "gameName": 1,
-    //         "seasonWeek": 1,
-    //         "entryDeadline": 1,
-    //         "startingDate": 1,
-    //         "endingDate": 1
-    //     }).toArray();
-
-    //     // console.log(results)
-    // }
-
-
-
-
 
 // POOL PLAYERS UPDATER
 //
-
-async function totalPlayersUpdater( client ) {
-
-    // GET ACTIVE POOLS
-    //
-
-    const spacefarerPools = await client.db("cryptark").collection("poolsSpacefarer").find({
-        isActive : true,
-        published_at: {$ne: null}
-    })
-    .project({
-        "_id": 0,
-        "fantomAddress": 1,
-        "mumbaiAddress": 1,
-        "tokenID": 1,
-        "totalPlayers": 1,
-    }).toArray();
-    
-
+async function watcherUpdater( client ) {
 
     // LIVE BLOCKCHAIN DATA
     //
-
     // RPCS
-    const fantomRPC = "https://rpc.ankr.com/fantom";
-    const polygonRPC = "https://rpc.ankr.com/polygon_mumbai";
+    const fantomRPCs = ["https://omniscient-proportionate-orb.fantom.quiknode.pro", "https://rpc.ankr.com/fantom"]
+    const polygonRPCs = ["https://rpc.ankr.com/polygon_mumbai"]
 
     // SEASON CONTRACT ADDRESSES
     const fantomAddress = "0x48379C046da82D6087b6EdD453aF177cD910bbE9";
-    const mumbaiAddress = "0x391b7790F0C9AcB634b5f7d66F9D5eBC6C9a26D1";
+    const polygonAddress = "0x391b7790F0C9AcB634b5f7d66F9D5eBC6C9a26D1";
+
+    //SDKS
+    var fantomSdk = null;
+    var polygonSdk = null;
     
-    // INSTANTIATE SDKS
-    const fantomSdk = new ThirdwebSDK(fantomRPC);
-    const polygonSdk = new ThirdwebSDK(polygonRPC);
+    //TRY INIT SDK
+    tryInitSDK("polygon", 0);
+    tryInitSDK("fantom", 0);
+
+    //TRY CATCH INIT SDK FUNCTION
+    function tryInitSDK(chain, index) {
+        try {
+            //try init sdk with first element of RPC arrays
+            InitSdk(chain, index);
+        } catch (exception) {
+            //if error caught, try rpc in next index
+            console.log(exception);
+            index++;
+            InitSdk(chain, index)
+        }
+    }
+
+    //INIK SDK FUNCTION
+    function InitSdk(chain, index) {
+        //init chosen sdk with chosen RPC array index
+        switch (chain) {
+            case "fantom":
+            fantomSdk = new ThirdwebSDK(fantomRPCs[index]);      
+            break;
+            case "polygon":
+            polygonSdk = new ThirdwebSDK(polygonRPCs[index]);
+            break;
+        }
+    }
 
     // SET CONTRACTS
     const fantomContract = await fantomSdk.getContract(fantomAddress, "edition-drop");
-    const polygonContract = await polygonSdk.getContract(mumbaiAddress, "edition-drop");
+    const polygonContract = await polygonSdk.getContract(polygonAddress, "edition-drop");
 
     // LISTEN TO FANTOM BLOCKCHAIN EVENTS
     fantomContract?.events.listenToAllEvents((event) => {
@@ -125,22 +121,37 @@ async function totalPlayersUpdater( client ) {
                 const polygonSupply = await polygonContract.totalSupply(getTokenID);
                 const fantomSupply = await fantomContract.totalSupply(getTokenID);
                 
-                // UPDATE DATASE
-                updateDatabase(getTokenID, polygonSupply, fantomSupply);
-                
+                // Update database with new total
+                updateTotalPlayers(getTokenID, polygonSupply, fantomSupply);
+
+                // Find current pool
+                const isAddressInAllowList = await client.db("cryptark").collection("poolsSpacefarer").findOne({
+                    isActive : true,
+                    published_at: {$ne: null},
+                    tokenID : getTokenID,
+                    allowList : getClaimer
+                });
+
+                // Check if player is not in allowlist
+                if (isAddressInAllowList == undefined) {
+
+                    // Insert new player in allowlist
+                    insertInAllowList(getTokenID, getClaimer);
+                }
+
                 // Output event data for debugging
                 console.log(
-                    getClaimer, " claimed a ",
-                    chain, " ticket ",
-                    "- for pool with tokenID", getTokenID
+                    getClaimer, "claimed a",
+                    chain, "ticket",
+                    "- for pool with tokenID:", getTokenID
                 );
 
             })();
         }
     }
 
-    // DATABASE UPDATER
-    function updateDatabase(getTokenID, polygonSupply, fantomSupply) {
+    // UPDATE TOTAL PLAYERS
+    function updateTotalPlayers(getTokenID, polygonSupply, fantomSupply) {
 
         // Find unique document
         const filter = {tokenID: getTokenID};
@@ -155,6 +166,25 @@ async function totalPlayersUpdater( client ) {
         // Update document
         const spacefarerPools = client.db("cryptark").collection("poolsSpacefarer").updateOne(filter, updateDoc);
     }
+
+
+    // INSET NEW PLAYER TO ALLOWLIST
+    function insertInAllowList(getTokenID, playerAddress) {
+
+        // Find unique document
+        const filter = {tokenID : getTokenID}
+
+        // Add player to allowlist
+        const updateDoc = {
+            $addToSet: {
+                allowList : playerAddress 
+            },
+        };
+
+        // Update document
+        const spacefarerPools = client.db("cryptark").collection("poolsSpacefarer").updateOne(filter, updateDoc);
+    }
+
 
 }
 
